@@ -1,10 +1,11 @@
 """
 LUCKNOW GLEEDEN BOT - HINDI + ENGLISH
-24x7 Timing | No Photoshoot | FULLY FIXED VERSION
+24x7 Timing | No Photoshoot | ADMIN MESSAGE FIXED
 """
 
 import os
 import threading
+import asyncio
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
@@ -33,13 +34,31 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN")
 ADMIN_ID = int(os.environ.get("ADMIN_ID", 1919682117))
 
 # Print for debugging
+print("=" * 50)
 print(f"🤖 TOKEN Loaded: {'✅ Yes' if TOKEN else '❌ No'}")
 print(f"👑 ADMIN_ID: {ADMIN_ID}")
+print(f"📝 TOKEN length: {len(TOKEN) if TOKEN else 0}")
+print("=" * 50)
 
 # Temporary storage
 user_data = {}
 bookings = {}
 user_active_booking = {}
+
+# ============================================
+# TEST ADMIN CONNECTION
+# ============================================
+
+async def test_admin_connection(bot):
+    """Test if bot can send message to admin"""
+    try:
+        await bot.send_message(ADMIN_ID, "🤖 *Bot is online and ready!*\n\nI will send all booking details here.", parse_mode='Markdown')
+        print(f"✅ Test message sent to admin {ADMIN_ID}")
+        return True
+    except Exception as e:
+        print(f"❌ Cannot send message to admin {ADMIN_ID}: {e}")
+        print(f"   Make sure admin has started the bot: https://t.me/{(await bot.get_me()).username}")
+        return False
 
 # ============================================
 # SHOW MAIN MENU
@@ -104,7 +123,21 @@ async def show_main_menu(message, user_id=None):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    user_name = update.effective_user.first_name
+    
+    # Send welcome message to user
     await show_main_menu(update.message, user_id)
+    
+    # Notify admin that a new user started the bot
+    try:
+        await context.bot.send_message(
+            ADMIN_ID, 
+            f"👤 *New User Started Bot*\n\nName: {user_name}\nID: `{user_id}`\nUsername: @{update.effective_user.username or 'N/A'}",
+            parse_mode='Markdown'
+        )
+        print(f"✅ New user notification sent to admin")
+    except Exception as e:
+        print(f"❌ Failed to send new user notification: {e}")
 
 async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -170,10 +203,10 @@ async def contact_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_message(ADMIN_ID, admin_msg, parse_mode='Markdown')
         print(f"✅ Contact request sent to admin {ADMIN_ID}")
+        await update.message.reply_text("✅ Request sent to admin! We will contact you shortly.", parse_mode='Markdown')
     except Exception as e:
         print(f"❌ Failed to send contact request: {e}")
-    
-    await update.message.reply_text("✅ Request sent to admin! We will contact you shortly.", parse_mode='Markdown')
+        await update.message.reply_text(f"❌ Error sending request. Please try again later.\n\nError: {str(e)[:100]}", parse_mode='Markdown')
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = """
@@ -359,9 +392,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(ADMIN_ID, admin_msg)
             print(f"✅ Contact request sent to admin")
+            await query.edit_message_text("✅ Request sent to admin! We'll contact you shortly.", parse_mode='Markdown')
         except Exception as e:
             print(f"❌ Failed: {e}")
-        await query.edit_message_text("✅ Request sent to admin! We'll contact you shortly.", parse_mode='Markdown')
+            await query.edit_message_text(f"❌ Error: {str(e)[:100]}", parse_mode='Markdown')
     
     # ========== CANCEL BOOKING ==========
     elif data == "menu_cancel_booking":
@@ -595,7 +629,7 @@ async def skip_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def complete_booking(user_id, message, contact_details):
     """Complete booking and send details to admin"""
     
-    print(f"Completing booking for user {user_id}")
+    print(f"📝 Completing booking for user {user_id}")
     
     service = user_data[user_id].get("service", "Unknown")
     duration = user_data[user_id].get("duration", "Unknown")
@@ -654,7 +688,7 @@ async def complete_booking(user_id, message, contact_details):
 *Our associate will contact you shortly!*
 """, reply_markup=reply_markup, parse_mode='Markdown')
     
-    # Send to admin
+    # Send to admin - MULTIPLE ATTEMPTS
     admin_message = f"""
 🔔 *NEW BOOKING* 🔔
 ━━━━━━━━━━━━━━━━
@@ -677,17 +711,28 @@ async def complete_booking(user_id, message, contact_details):
 ⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
     
+    # Attempt 1: With Markdown
     try:
         await message.bot.send_message(ADMIN_ID, admin_message, parse_mode='Markdown')
-        print(f"✅ Booking sent to admin {ADMIN_ID}")
+        print(f"✅ Booking sent to admin {ADMIN_ID} (with markdown)")
     except Exception as e:
-        print(f"❌ Failed to send to admin: {e}")
-        # Try without markdown
+        print(f"❌ Attempt 1 failed: {e}")
+        
+        # Attempt 2: Without Markdown
         try:
-            await message.bot.send_message(ADMIN_ID, admin_message.replace('*', '').replace('_', ''))
-            print(f"✅ Booking sent to admin (without markdown)")
+            await message.bot.send_message(ADMIN_ID, admin_message.replace('*', '').replace('_', '').replace('`', ''))
+            print(f"✅ Booking sent to admin {ADMIN_ID} (without markdown)")
         except Exception as e2:
-            print(f"❌ Both attempts failed: {e2}")
+            print(f"❌ Attempt 2 failed: {e2}")
+            
+            # Attempt 3: Plain text only
+            try:
+                plain_text = f"NEW BOOKING!\n\nCustomer: {user.first_name}\nID: {user_id}\nService: {service}\nBooking ID: {booking_id}"
+                await message.bot.send_message(ADMIN_ID, plain_text)
+                print(f"✅ Booking sent to admin {ADMIN_ID} (plain text)")
+            except Exception as e3:
+                print(f"❌ All attempts failed! Admin ID: {ADMIN_ID}")
+                print(f"   Make sure admin has started the bot at: https://t.me/{(await message.bot.get_me()).username}")
     
     # Clear user data
     if user_id in user_data:
@@ -697,17 +742,40 @@ async def complete_booking(user_id, message, contact_details):
 # MAIN FUNCTION
 # ============================================
 
-def main():
+async def async_main():
+    """Async main function"""
     print("=" * 50)
     print("🚀 LUCKNOW GLEEDEN BOT STARTING...")
     print(f"🤖 TOKEN: {'✅ Loaded' if TOKEN else '❌ Missing'}")
     print(f"👑 ADMIN_ID: {ADMIN_ID}")
     print("=" * 50)
     
-    threading.Thread(target=run_flask, daemon=True).start()
-    
+    # Create bot application
     app = Application.builder().token(TOKEN).build()
     
+    # Initialize bot and test admin connection
+    await app.initialize()
+    await app.start()
+    
+    # Test admin connection
+    bot_info = await app.bot.get_me()
+    print(f"🤖 Bot Name: @{bot_info.username}")
+    
+    try:
+        await app.bot.send_message(ADMIN_ID, f"🤖 *Bot is online!*\n\nBot Name: @{bot_info.username}\nTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", parse_mode='Markdown')
+        print(f"✅ Test message sent to admin {ADMIN_ID}")
+        print(f"   Admin will receive all booking notifications here.")
+    except Exception as e:
+        print(f"❌ CANNOT SEND MESSAGE TO ADMIN {ADMIN_ID}")
+        print(f"   Error: {e}")
+        print(f"   Please make sure:")
+        print(f"   1. ADMIN_ID is correct: {ADMIN_ID}")
+        print(f"   2. Admin has started the bot: https://t.me/{bot_info.username}")
+        print(f"   3. Admin sent /start to the bot")
+    
+    await app.stop()
+    
+    # Add handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("book", book_command))
     app.add_handler(CommandHandler("info", info_command))
@@ -718,10 +786,24 @@ def main():
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, easy_type_handler))
     
-    print("✅ Bot started!")
+    print("✅ Bot started! Check admin messages above.")
     print("=" * 50)
     
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Start polling
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    
+    # Keep running
+    while True:
+        await asyncio.sleep(1)
+
+def main():
+    # Start Flask health check server
+    threading.Thread(target=run_flask, daemon=True).start()
+    
+    # Run async main
+    asyncio.run(async_main())
 
 if __name__ == "__main__":
     main()

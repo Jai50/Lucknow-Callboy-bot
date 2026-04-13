@@ -1,6 +1,6 @@
 """
 LUCKNOW GLEEDEN BOT - HINDI + ENGLISH
-24x7 Timing | No Photoshoot | ONLY FOR FEMALE
+24x7 Timing | No Photoshoot | ONLY FOR FEMALE | FIXED VERSION
 """
 
 import os
@@ -391,84 +391,73 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_data[user_id]["step"] = "age"
         
         await query.edit_message_text(
-            f"✅ Status: *{status_map[data]}*\n\n🎂 Please enter your age:\n\nExample: `25`",
+            f"✅ Status: *{status_map[data]}*\n\n🎂 *Please enter your age:*\n\nExample: `25`\n\n*कृपया अपनी उम्र बताएं:*",
             parse_mode='Markdown'
         )
 
 # ============================================
-# AGE HANDLER
+# MESSAGE HANDLER - Age, Location, Contact
 # ============================================
 
-async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle age input"""
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle all text messages - Age, Location, Contact Details"""
     user_id = update.effective_user.id
     message = update.message
+    text = message.text.strip()
     
-    if user_id not in user_data or user_data[user_id].get("step") != "age":
+    # Check if user is in booking flow
+    if user_id not in user_data:
+        # Auto reply for random messages
         await message.reply_text("📝 Type /book to start a new booking")
         return
     
-    age = message.text.strip()
-    user_data[user_id]["age"] = age
-    user_data[user_id]["step"] = "location"
+    current_step = user_data[user_id].get("step")
     
-    await message.reply_text(
-        f"✅ Age: *{age}*\n\n"
-        f"📍 *Please share your LOCATION (Area Name)*\n\n"
-        f"Example: Gomti Nagar, Lucknow\n\n"
-        f"*अब कृपया अपनी लोकेशन भेजें (इलाके का नाम)*",
-        parse_mode='Markdown'
-    )
-
-# ============================================
-# LOCATION HANDLER
-# ============================================
-
-async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle user's text location"""
-    user_id = update.effective_user.id
-    message = update.message
+    # ========== AGE STEP ==========
+    if current_step == "age":
+        user_data[user_id]["age"] = text
+        user_data[user_id]["step"] = "location"
+        
+        await message.reply_text(
+            f"✅ Age: *{text}*\n\n"
+            f"📍 *Please share your LOCATION (Area Name)*\n\n"
+            f"Example: Gomti Nagar, Lucknow\n\n"
+            f"*अब कृपया अपनी लोकेशन भेजें (इलाके का नाम)*",
+            parse_mode='Markdown'
+        )
     
-    if user_id not in user_data or user_data[user_id].get("step") != "location":
+    # ========== LOCATION STEP ==========
+    elif current_step == "location":
+        user_data[user_id]["location"] = text
+        user_data[user_id]["step"] = "contact_details"
+        
+        keyboard = [
+            [InlineKeyboardButton("⏭️ Skip / छोड़ें", callback_data="skip_contact")],
+            [InlineKeyboardButton("❌ Cancel Booking", callback_data="book_cancel")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await message.reply_text(
+            f"✅ Location: *{text}*\n\n"
+            f"📞 *Please share your CONTACT DETAILS (Optional)*\n\n"
+            f"Example: Phone Number or WhatsApp Number\n\n"
+            f"Example: `9876543210`\n\n"
+            f"*You can also click SKIP if you don't want to share*",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+    
+    # ========== CONTACT DETAILS STEP ==========
+    elif current_step == "contact_details":
+        contact_details = text
+        await complete_booking(user_id, message, contact_details)
+    
+    else:
         await message.reply_text("📝 Type /book to start a new booking")
-        return
-    
-    location_text = message.text.strip()
-    user_data[user_id]["location"] = location_text
-    user_data[user_id]["step"] = "contact_details"
-    
-    # Skip button ke liye keyboard
-    keyboard = [
-        [InlineKeyboardButton("⏭️ Skip / छोड़ें", callback_data="skip_contact")],
-        [InlineKeyboardButton("❌ Cancel Booking", callback_data="book_cancel")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await message.reply_text(
-        f"✅ Location: *{location_text}*\n\n"
-        f"📞 *Please share your CONTACT DETAILS (Optional)*\n\n"
-        f"Example: Phone Number or WhatsApp Number\n\n"
-        f"Example: `9876543210`\n\n"
-        f"*You can also click SKIP if you don't want to share*",
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
 
 # ============================================
-# CONTACT DETAILS HANDLER (With Skip Option)
+# SKIP CONTACT HANDLER
 # ============================================
-
-async def handle_contact_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle contact details and complete booking"""
-    user_id = update.effective_user.id
-    message = update.message
-    
-    if user_id not in user_data or user_data[user_id].get("step") != "contact_details":
-        await message.reply_text("📝 Type /book to start a new booking")
-        return
-    
-    contact_details = message.text.strip()
-    await complete_booking(user_id, message, contact_details)
 
 async def skip_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Skip contact details"""
@@ -482,6 +471,10 @@ async def skip_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     await complete_booking(user_id, query.message, "Not provided (Skipped)")
+
+# ============================================
+# COMPLETE BOOKING FUNCTION
+# ============================================
 
 async def complete_booking(user_id, message, contact_details):
     """Complete booking and send details to admin"""
@@ -576,22 +569,27 @@ async def complete_booking(user_id, message, contact_details):
     del user_data[user_id]
 
 # ============================================
-# AUTO REPLY HANDLER
+# AUTO REPLY HANDLER (for messages outside booking)
 # ============================================
 
 async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Auto reply for common questions"""
+    """Auto reply for common questions when not in booking flow"""
+    user_id = update.effective_user.id
+    
+    # If user is in booking flow, don't auto reply (let handle_message handle it)
+    if user_id in user_data:
+        return
+    
     text = update.message.text.lower()
     
     if "help" in text:
         await update.message.reply_text("Type /start for menu\n/book for booking")
     elif "location" in text:
-        await update.message.reply_text("📍 Service areas: Lucknow")
+        await update.message.reply_text("📍 Service areas: Lucknow (Gomti Nagar, Hazratganj, Aliganj, Indira Nagar)")
     elif "cancel" in text:
         await update.message.reply_text("❌ To cancel, reply to your booking confirmation message.")
     else:
-        await context.bot.send_message(ADMIN_ID, f"📩 New Message from @{update.effective_user.username or update.effective_user.first_name}: {update.message.text}")
-        await update.message.reply_text("✅ Message received! We'll respond shortly.")
+        await update.message.reply_text("✅ Message received! We'll respond shortly.\n\nType /book to start a new booking")
 
 # ============================================
 # MAIN FUNCTION
@@ -620,10 +618,9 @@ def main():
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(CallbackQueryHandler(skip_contact, pattern="skip_contact"))
     
-    # Add message handlers
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_age))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_location))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_contact_details))
+    # Add message handlers - IMPORTANT: Order matters!
+    # First check if message is part of booking flow
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     print("✅ Bot is running 24/7!")
     print("=" * 50)
@@ -633,10 +630,11 @@ def main():
     print("• Day Service: 1,2,4 Hours")
     print("• Night Package: 1,2,4 Hours, Full Night")
     print("=" * 50)
-    print("✅ New Features Added:")
-    print("• Contact Details - OPTIONAL")
-    print("• SKIP button for contact")
-    print("• Booking ID for Customer")
+    print("✅ FIXED:")
+    print("• Age → Location → Contact Details")
+    print("• Skip button working")
+    print("• Booking Confirmation")
+    print("• Admin message working")
     print("=" * 50)
     
     # Start bot polling

@@ -1,6 +1,6 @@
 """
 LUCKNOW CALLBOY BOT - HINDI + ENGLISH
-24x7 Timing | No Photoshoot
+24x7 Timing | No Photoshoot | FIXED BUTTONS
 """
 
 import os
@@ -37,11 +37,11 @@ user_data = {}
 bookings = {}
 
 # ============================================
-# COMMAND HANDLERS - HINDI + ENGLISH
+# COMMAND HANDLERS
 # ============================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Welcome message - Hindi + English"""
+    """Welcome message with working buttons"""
     welcome_text = """
 🔥 *WELCOME TO LUCKNOW CALLBOY SERVICE* 🔥
 🔥 *लखनऊ कॉलबॉय सर्विस में आपका स्वागत है* 🔥
@@ -54,8 +54,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /info - Service Info / सेवा की जानकारी
 /contact - Contact Us / संपर्क करें
 
-🔒 *100% Privacy Guaranteed / 100% प्राइवेसी गारंटी*
-📍 *Service in Lucknow / लखनऊ में सेवा*
+🔒 *100% Privacy Guaranteed*
+📍 *Service in Lucknow*
 """
     keyboard = [
         [InlineKeyboardButton("📅 Book Now / अभी बुक करें", callback_data="menu_book")],
@@ -66,11 +66,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode='Markdown')
 
 async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start booking - Hindi + English (No Photoshoot)"""
+    """Start booking - Shows service menu"""
     user_id = update.effective_user.id
     user_data[user_id] = {"step": "service"}
     
-    # Photoshoot option हटा दिया गया है!
     keyboard = [
         [InlineKeyboardButton("💆‍♂️ Massage / मालिश", callback_data="book_massage")],
         [InlineKeyboardButton("🍽️ Dinner Date / डिनर डेट", callback_data="book_dinner")],
@@ -79,14 +78,23 @@ async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("❌ Cancel / रद्द करें", callback_data="book_cancel")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "📅 *NEW BOOKING / नई बुकिंग*\n\nSelect service / सेवा चुनें:",
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
+    
+    # Using edit_message_text if it's a callback, otherwise send new message
+    if update.callback_query:
+        await update.callback_query.message.edit_text(
+            "📅 *NEW BOOKING / नई बुकिंग*\n\nSelect service / सेवा चुनें:",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+    else:
+        await update.message.reply_text(
+            "📅 *NEW BOOKING / नई बुकिंग*\n\nSelect service / सेवा चुनें:",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
 
 async def info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Service information - Hindi + English (No Photoshoot)"""
+    """Service information"""
     info_text = """
 ℹ️ *SERVICE INFORMATION / सेवा की जानकारी* ℹ️
 
@@ -100,78 +108,131 @@ async def info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Verified Professionals / वेरिफाइड प्रोफेशनल्स
 • 100% Privacy Guaranteed / 100% प्राइवेसी गारंटी
 • Safe & Discreet Service / सुरक्षित और गोपनीय सेवा
+
+⏰ *24x7 Service Available*
 """
-    await update.message.reply_text(info_text, parse_mode='Markdown')
+    if update.callback_query:
+        await update.callback_query.message.edit_text(info_text, parse_mode='Markdown')
+    else:
+        await update.message.reply_text(info_text, parse_mode='Markdown')
 
 async def contact_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Contact information - 24x7 Timing + Hindi + English"""
+    """Contact information"""
     contact_text = """
 📞 *CONTACT US / संपर्क करें* 📞
 
 💬 *Reply here / यहाँ रिप्लाई करें* - We respond quickly
-⏰ *Service Hours / सेवा समय:* 🟢 *24x7 (Always Open / हमेशा खुला)*
-📍 *Location / स्थान:* Lucknow / लखनऊ
+⏰ *Service Hours:* 🟢 *24x7 (Always Open)*
+📍 *Location:* Lucknow / लखनऊ
 
-🔒 *Privacy Guaranteed / प्राइवेसी गारंटी*
+🔒 *Privacy Guaranteed*
 
-📝 *How to Book / बुकिंग कैसे करें:*
-1. Type /book or click Book Now
-2. Select service / सेवा चुनें
-3. Choose duration / समय चुनें
-4. Share location / लोकेशन भेजें
+📝 *How to Book:*
+1️⃣ Type /book or click Book Now
+2️⃣ Select service
+3️⃣ Choose duration
+4️⃣ Share location
 
-*हम 24 घंटे आपकी सेवा में हैं! / We are here for you 24x7!*
+*हम 24 घंटे आपकी सेवा में हैं!*
 """
-    await update.message.reply_text(contact_text, parse_mode='Markdown')
+    if update.callback_query:
+        await update.callback_query.message.edit_text(contact_text, parse_mode='Markdown')
+    else:
+        await update.message.reply_text(contact_text, parse_mode='Markdown')
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Help menu - Hindi + English"""
+    """Help menu"""
     help_text = """
 ℹ️ *HOW TO USE / उपयोग कैसे करें* ℹ️
 
-📅 *To Book / बुकिंग के लिए:*
-1. Type /book or click Book Now
-2. Select service / सेवा चुनें
-3. Choose duration / समय चुनें
-4. Share your live location / लाइव लोकेशन भेजें
-5. Booking confirmed! / बुकिंग कन्फर्म!
+📅 *To Book:*
+1️⃣ Type /book or click Book Now
+2️⃣ Select service
+3️⃣ Choose duration
+4️⃣ Share your live location
+5️⃣ Booking confirmed!
 
-💬 *Commands / कमांड्स:*
-/start - Main menu / मुख्य मेनू
-/book - Start booking / बुकिंग शुरू करें
-/info - Service info / सेवा की जानकारी
-/contact - Contact us / संपर्क करें
-/help - This menu / यह मेनू
+💬 *Commands:*
+/start - Main menu
+/book - Start booking
+/info - Service info
+/contact - Contact us
+/help - This menu
 
-🔒 *100% Privacy Guaranteed / 100% प्राइवेसी गारंटी*
-
-*हिंदी या English में message भेज सकते हैं!*
+🔒 *100% Privacy Guaranteed*
 """
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
 # ============================================
-# CALLBACK QUERY HANDLER
+# CALLBACK QUERY HANDLER - FIXED
 # ============================================
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle all button clicks - Hindi + English"""
+    """Handle all button clicks - FIXED VERSION"""
     query = update.callback_query
-    await query.answer()
+    await query.answer()  # Always answer callback query first
     
     user_id = query.from_user.id
     data = query.data
     
-    # ========== MENU BUTTONS ==========
+    # ========== MAIN MENU BUTTONS ==========
     if data == "menu_book":
-        await book_command(update, context)
+        user_data[user_id] = {"step": "service"}
+        keyboard = [
+            [InlineKeyboardButton("💆‍♂️ Massage / मालिश", callback_data="book_massage")],
+            [InlineKeyboardButton("🍽️ Dinner Date / डिनर डेट", callback_data="book_dinner")],
+            [InlineKeyboardButton("🎉 Party Companion / पार्टी कम्पेनियन", callback_data="book_party")],
+            [InlineKeyboardButton("🌙 Night Package / नाइट पैकेज", callback_data="book_night")],
+            [InlineKeyboardButton("❌ Cancel / रद्द करें", callback_data="book_cancel")]
+        ]
+        await query.edit_message_text(
+            "📅 *NEW BOOKING / नई बुकिंग*\n\nSelect service / सेवा चुनें:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
     
     elif data == "menu_info":
-        await info_command(update, context)
+        info_text = """
+ℹ️ *SERVICE INFORMATION / सेवा की जानकारी* ℹ️
+
+✨ *What We Offer:*
+• Professional Massage / प्रोफेशनल मालिश
+• Dinner Date Companion / डिनर डेट कम्पेनियन
+• Party/Event Companion / पार्टी/इवेंट कम्पेनियन
+• Night Out Package / नाइट आउट पैकेज
+
+✅ *Features:*
+• Verified Professionals
+• 100% Privacy Guaranteed
+• Safe & Discreet Service
+
+⏰ *24x7 Service Available*
+
+🔙 Click /start to go back
+"""
+        await query.edit_message_text(info_text, parse_mode='Markdown')
     
     elif data == "menu_contact":
-        await contact_command(update, context)
+        contact_text = """
+📞 *CONTACT US / संपर्क करें* 📞
+
+💬 *Reply here* - We respond quickly
+⏰ *Service Hours:* 🟢 *24x7*
+📍 *Location:* Lucknow
+
+📝 *How to Book:*
+1️⃣ Type /book 
+2️⃣ Select service
+3️⃣ Choose duration  
+4️⃣ Share location
+
+*हम 24 घंटे आपकी सेवा में हैं!*
+
+🔙 Click /start to go back
+"""
+        await query.edit_message_text(contact_text, parse_mode='Markdown')
     
-    # ========== SERVICE SELECTION (No Photoshoot) ==========
+    # ========== SERVICE SELECTION ==========
     elif data == "book_massage":
         user_data[user_id] = {"service": "Massage / मालिश", "step": "duration"}
         keyboard = [
@@ -179,7 +240,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⏰ 2 Hours / 2 घंटे", callback_data="dur_2")],
             [InlineKeyboardButton("⏰ 4 Hours / 4 घंटे", callback_data="dur_4")],
             [InlineKeyboardButton("🌙 Full Night / पूरी रात", callback_data="dur_night")],
-            [InlineKeyboardButton("🔙 Back / वापस", callback_data="menu_book")]
+            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
         ]
         await query.edit_message_text(
             "✅ Selected: *Massage / मालिश*\n\nSelect duration / समय चुनें:",
@@ -194,7 +255,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⏰ 2 Hours / 2 घंटे", callback_data="dur_2")],
             [InlineKeyboardButton("⏰ 4 Hours / 4 घंटे", callback_data="dur_4")],
             [InlineKeyboardButton("🌙 Full Night / पूरी रात", callback_data="dur_night")],
-            [InlineKeyboardButton("🔙 Back / वापस", callback_data="menu_book")]
+            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
         ]
         await query.edit_message_text(
             "✅ Selected: *Dinner Date / डिनर डेट*\n\nSelect duration / समय चुनें:",
@@ -209,7 +270,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⏰ 2 Hours / 2 घंटे", callback_data="dur_2")],
             [InlineKeyboardButton("⏰ 4 Hours / 4 घंटे", callback_data="dur_4")],
             [InlineKeyboardButton("🌙 Full Night / पूरी रात", callback_data="dur_night")],
-            [InlineKeyboardButton("🔙 Back / वापस", callback_data="menu_book")]
+            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
         ]
         await query.edit_message_text(
             "✅ Selected: *Party Companion / पार्टी कम्पेनियन*\n\nSelect duration / समय चुनें:",
@@ -224,7 +285,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⏰ 2 Hours / 2 घंटे", callback_data="dur_2")],
             [InlineKeyboardButton("⏰ 4 Hours / 4 घंटे", callback_data="dur_4")],
             [InlineKeyboardButton("🌙 Full Night / पूरी रात", callback_data="dur_night")],
-            [InlineKeyboardButton("🔙 Back / वापस", callback_data="menu_book")]
+            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
         ]
         await query.edit_message_text(
             "✅ Selected: *Night Package / नाइट पैकेज*\n\nSelect duration / समय चुनें:",
@@ -282,13 +343,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ============================================
 
 async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle user's live location - Hindi + English"""
+    """Handle user's live location"""
     user_id = update.effective_user.id
     message = update.message
     
     if user_id not in user_data or user_data[user_id].get("step") != "location":
         await message.reply_text(
-            "📍 Type /book to start a new booking / नई बुकिंग के लिए /book टाइप करें"
+            "📍 Type /book to start a new booking"
         )
         return
     
@@ -307,18 +368,16 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     
     await message.reply_text(f"""
-✅ *BOOKING CONFIRMED! / बुकिंग कन्फर्म!* ✅
+✅ *BOOKING CONFIRMED!* ✅
 
-📋 *Booking ID / बुकिंग आईडी:* `{booking_id}`
-💼 *Service / सेवा:* {service}
-⏱️ *Duration / समय:* {duration}
+📋 *Booking ID:* `{booking_id}`
+💼 *Service:* {service}
+⏱️ *Duration:* {duration}
 
-📞 *Next Steps / अगले कदम:*
+📞 *Next Steps:*
 Our associate will call you shortly.
-हमारा सहयोगी आपको जल्द कॉल करेगा।
 
 *Thank you for choosing our service!*
-*हमारी सेवा चुनने के लिए धन्यवाद!*
 """, parse_mode='Markdown')
     
     maps_link = f"https://maps.google.com/?q={lat},{lon}"
@@ -338,29 +397,29 @@ Our associate will call you shortly.
     del user_data[user_id]
 
 # ============================================
-# AUTO REPLY HANDLER - Hindi + English
+# AUTO REPLY HANDLER
 # ============================================
 
 async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Auto reply for common questions - Hindi + English"""
+    """Auto reply for common questions"""
     text = update.message.text.lower()
     
     if "help" in text or "मदद" in text:
         await update.message.reply_text(
-            "Type /start for menu / मेनू के लिए /start टाइप करें\n/book for booking / बुकिंग के लिए /book"
+            "Type /start for menu\n/book for booking"
         )
-    elif "location" in text or "लोकेशन" in text or "area" in text or "इलाका" in text:
+    elif "location" in text or "लोकेशन" in text or "area" in text:
         await update.message.reply_text(
-            "📍 Service areas / सेवा क्षेत्र: Lucknow (Gomti Nagar, Hazratganj, Aliganj, Indira Nagar)"
+            "📍 Service areas: Lucknow (Gomti Nagar, Hazratganj, Aliganj, Indira Nagar)"
         )
     elif "cancel" in text or "रद्द" in text:
         await update.message.reply_text(
-            "❌ To cancel, reply to your booking confirmation message.\nरद्द करने के लिए, अपने बुकिंग कन्फर्मेशन मैसेज का रिप्लाई करें।"
+            "❌ To cancel, reply to your booking confirmation message."
         )
     else:
         await context.bot.send_message(ADMIN_ID, f"📩 *New Message*\n👤 @{update.effective_user.username or update.effective_user.first_name}\n💬 {update.message.text}", parse_mode='Markdown')
         await update.message.reply_text(
-            "✅ Message received! We'll respond shortly.\n✅ संदेश मिल गया! हम जल्द जवाब देंगे।"
+            "✅ Message received! We'll respond shortly."
         )
 
 # ============================================
@@ -370,12 +429,11 @@ async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     print("=" * 50)
     print("🚀 LUCKNOW CALLBOY BOT STARTING...")
-    print("🚀 लखनऊ कॉलबॉय बॉट शुरू हो रहा है...")
     print("=" * 50)
     
     # Start Flask health check server
     threading.Thread(target=run_flask, daemon=True).start()
-    print("✅ Flask health check server started")
+    print("✅ Flask server started")
     
     # Create bot application
     app = Application.builder().token(TOKEN).build()
@@ -387,17 +445,15 @@ def main():
     app.add_handler(CommandHandler("contact", contact_command))
     app.add_handler(CommandHandler("help", help_command))
     
-    # Add callback query handler
+    # Add callback query handler - IMPORTANT: This handles all button clicks
     app.add_handler(CallbackQueryHandler(button_callback))
     
     # Add message handlers
     app.add_handler(MessageHandler(filters.LOCATION, handle_location))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_reply))
     
-    print("✅ Bot is running 24/7 on Render!")
-    print("✅ 24x7 Timing Enabled!")
-    print("✅ Hindi + English Support Added!")
-    print("✅ Photoshoot Option Removed!")
+    print("✅ Bot is running 24/7!")
+    print("✅ All buttons are now WORKING!")
     print("=" * 50)
     
     # Start bot polling

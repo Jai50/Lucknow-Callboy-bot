@@ -1,6 +1,6 @@
 """
 LUCKNOW CALLBOY BOT - HINDI + ENGLISH
-24x7 Timing | No Photoshoot | UPDATED VERSION
+24x7 Timing | No Photoshoot | SIMPLIFIED VERSION
 """
 
 import os
@@ -72,6 +72,7 @@ async def book_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💆‍♂️ Massage / मालिश", callback_data="book_massage")],
         [InlineKeyboardButton("🤝 Casual Meet Up", callback_data="book_casual")],
+        [InlineKeyboardButton("☀️ Day Service / डे सर्विस", callback_data="book_day")],
         [InlineKeyboardButton("🌙 Night Package / नाइट पैकेज", callback_data="book_night")],
         [InlineKeyboardButton("❌ Cancel / रद्द करें", callback_data="book_cancel")]
     ]
@@ -90,12 +91,8 @@ async def info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ✨ *What We Offer / हम क्या प्रदान करते हैं:*
 • Professional Massage / प्रोफेशनल मालिश
 • Casual Meet Up / कैजुअल मीट अप
-• Night Out Package / नाइट आउट पैकेज
-
-📍 *Service Locations:*
-• Public Place / सार्वजनिक स्थान
-• Hotel / होटल
-• Your Home / आपका घर
+• Day Service / डे सर्विस
+• Night Package / नाइट पैकेज
 
 ✅ *Features:*
 • Verified Professionals
@@ -107,24 +104,42 @@ async def info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(info_text, parse_mode='Markdown')
 
 async def contact_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Contact information"""
-    contact_text = """
+    """Contact information - Sends user details to admin"""
+    user = update.effective_user
+    
+    # User ki details admin ko bhejein
+    admin_msg = f"""
+📞 *CONTACT REQUEST* 📞
+
+👤 *User Details:*
+• Name: {user.first_name} {user.last_name or ''}
+• Username: @{user.username or 'N/A'}
+• User ID: `{user.id}`
+• Language: {user.language_code or 'Unknown'}
+
+⏰ *Time:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+📱 *Chat Link:* [Click to message](tg://user?id={user.id})
+"""
+    await context.bot.send_message(ADMIN_ID, admin_msg, parse_mode='Markdown')
+    
+    # User ko reply
+    contact_text = f"""
 📞 *CONTACT US / संपर्क करें* 📞
 
-💬 *Reply here* - We respond quickly
-⏰ *Service Hours:* 🟢 *24x7*
+✅ *Your request has been forwarded to admin!*
+✅ *आपका अनुरोध एडमिन को भेज दिया गया है!*
+
+📝 *Details sent to admin:*
+• Name: {user.first_name}
+• Username: @{user.username or 'N/A'}
+• User ID: `{user.id}`
+
+⏰ *We will contact you shortly!*
+⏰ *हम आपसे जल्द संपर्क करेंगे!*
+
+📌 *Service Hours:* 🟢 24x7
 📍 *Location:* Lucknow
-
-📝 *How to Book:*
-1️⃣ Type /book
-2️⃣ Select service
-3️⃣ Choose duration
-4️⃣ Select day
-5️⃣ Choose meeting place
-6️⃣ Share your details
-7️⃣ Share location
-
-*हम 24 घंटे आपकी सेवा में हैं!*
 """
     await update.message.reply_text(contact_text, parse_mode='Markdown')
 
@@ -137,9 +152,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 1️⃣ Type /book
 2️⃣ Select service
 3️⃣ Choose duration
-4️⃣ Select day
-5️⃣ Choose meeting place
-6️⃣ Share your details
+4️⃣ Choose meeting place
+5️⃣ Tell status (Single/Couple)
+6️⃣ Share age
 7️⃣ Share location
 
 💬 *Commands:*
@@ -168,9 +183,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "menu_book":
         user_data[user_id] = {"step": "service"}
         keyboard = [
-            [InlineKeyboardButton("💆‍♂️ Massage / मालिश", callback_data="book_massage")],
+            [InlineKeyboardButton("💆‍♂️ Massage", callback_data="book_massage")],
             [InlineKeyboardButton("🤝 Casual Meet Up", callback_data="book_casual")],
-            [InlineKeyboardButton("🌙 Night Package / नाइट पैकेज", callback_data="book_night")],
+            [InlineKeyboardButton("☀️ Day Service", callback_data="book_day")],
+            [InlineKeyboardButton("🌙 Night Package", callback_data="book_night")],
             [InlineKeyboardButton("❌ Cancel", callback_data="book_cancel")]
         ]
         await query.edit_message_text(
@@ -186,32 +202,46 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ✨ *What We Offer:*
 • Professional Massage
 • Casual Meet Up
+• Day Service
 • Night Package
 
-📍 *Service Locations:*
-• Public Place
-• Hotel
-• Your Home
-
+✅ *Verified Professionals*
+✅ *100% Privacy Guaranteed*
 ⏰ *24x7 Available*
 """
         await query.edit_message_text(info_text, parse_mode='Markdown')
     
     elif data == "menu_contact":
-        contact_text = """
+        # Contact button se bhi admin ko details jaye
+        user = query.from_user
+        admin_msg = f"""
+📞 *CONTACT REQUEST (from menu)* 📞
+
+👤 *User Details:*
+• Name: {user.first_name} {user.last_name or ''}
+• Username: @{user.username or 'N/A'}
+• User ID: `{user.id}`
+
+⏰ *Time:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        await context.bot.send_message(ADMIN_ID, admin_msg, parse_mode='Markdown')
+        
+        contact_text = f"""
 📞 *CONTACT US*
 
-💬 *Reply here* - Quick response
-⏰ *24x7 Service*
-📍 *Location:* Lucknow
+✅ *Request sent to admin!*
+✅ *एडमिन को रिक्वेस्ट भेज दी गई!*
 
-*हम 24 घंटे आपकी सेवा में हैं!*
+📝 *Your ID:* `{user.id}`
+
+⏰ *We'll contact you shortly!*
+📍 *Lucknow | 24x7*
 """
         await query.edit_message_text(contact_text, parse_mode='Markdown')
     
     # ========== SERVICE SELECTION ==========
     elif data == "book_massage":
-        user_data[user_id] = {"service": "Massage / मालिश", "step": "duration"}
+        user_data[user_id] = {"service": "Massage", "step": "duration"}
         keyboard = [
             [InlineKeyboardButton("⏰ 1 Hour", callback_data="dur_1")],
             [InlineKeyboardButton("⏰ 2 Hours", callback_data="dur_2")],
@@ -240,8 +270,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
     
+    elif data == "book_day":
+        user_data[user_id] = {"service": "Day Service", "step": "duration"}
+        # Day Service mein FULL NIGHT nahi hoga
+        keyboard = [
+            [InlineKeyboardButton("⏰ 1 Hour", callback_data="dur_1")],
+            [InlineKeyboardButton("⏰ 2 Hours", callback_data="dur_2")],
+            [InlineKeyboardButton("⏰ 4 Hours", callback_data="dur_4")],
+            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
+        ]
+        await query.edit_message_text(
+            "✅ Selected: *Day Service*\n\nSelect duration:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    
     elif data == "book_night":
-        user_data[user_id] = {"service": "Night Package / नाइट पैकेज", "step": "duration"}
+        user_data[user_id] = {"service": "Night Package", "step": "duration"}
         keyboard = [
             [InlineKeyboardButton("⏰ 1 Hour", callback_data="dur_1")],
             [InlineKeyboardButton("⏰ 2 Hours", callback_data="dur_2")],
@@ -272,38 +317,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "dur_night": "Full Night"
         }
         user_data[user_id]["duration"] = duration_map[data]
-        user_data[user_id]["step"] = "day"
-        
-        keyboard = [
-            [InlineKeyboardButton("📅 Today / आज", callback_data="day_today")],
-            [InlineKeyboardButton("📅 Tomorrow / कल", callback_data="day_tomorrow")],
-            [InlineKeyboardButton("📅 Any Day / कोई भी दिन", callback_data="day_any")],
-            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
-        ]
-        await query.edit_message_text(
-            f"✅ Duration: *{duration_map[data]}*\n\n📅 *Select day / दिन चुनें:*",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
-    
-    # ========== DAY SELECTION ==========
-    elif data in ["day_today", "day_tomorrow", "day_any"]:
-        day_map = {
-            "day_today": "Today / आज",
-            "day_tomorrow": "Tomorrow / कल",
-            "day_any": "Any Day / कोई भी दिन"
-        }
-        user_data[user_id]["day"] = day_map[data]
         user_data[user_id]["step"] = "place"
         
         keyboard = [
-            [InlineKeyboardButton("🏢 Public Place / सार्वजनिक स्थान", callback_data="place_public")],
-            [InlineKeyboardButton("🏨 Hotel / होटल", callback_data="place_hotel")],
-            [InlineKeyboardButton("🏠 Your Home / आपका घर", callback_data="place_home")],
+            [InlineKeyboardButton("🏢 Public Place", callback_data="place_public")],
+            [InlineKeyboardButton("🏨 Hotel", callback_data="place_hotel")],
+            [InlineKeyboardButton("🏠 Your Home", callback_data="place_home")],
             [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
         ]
         await query.edit_message_text(
-            f"✅ Day: *{day_map[data]}*\n\n📍 *Where do you want the service?*\n*सेवा कहाँ चाहिए?*",
+            f"✅ Duration: *{duration_map[data]}*\n\n📍 *Where do you want the service?*\n*सेवा कहाँ चाहिए?*",
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode='Markdown'
         )
@@ -311,49 +334,62 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ========== PLACE SELECTION ==========
     elif data in ["place_public", "place_hotel", "place_home"]:
         place_map = {
-            "place_public": "Public Place / सार्वजनिक स्थान",
-            "place_hotel": "Hotel / होटल",
-            "place_home": "Your Home / आपका घर"
+            "place_public": "Public Place",
+            "place_hotel": "Hotel",
+            "place_home": "Your Home"
         }
         user_data[user_id]["place"] = place_map[data]
-        user_data[user_id]["step"] = "details"
+        user_data[user_id]["step"] = "status"
+        
+        keyboard = [
+            [InlineKeyboardButton("👤 Single", callback_data="status_single")],
+            [InlineKeyboardButton("👥 Couple", callback_data="status_couple")],
+            [InlineKeyboardButton("🔙 Back", callback_data="menu_book")]
+        ]
+        await query.edit_message_text(
+            f"✅ Place: *{place_map[data]}*\n\n👥 *Are you Single or Couple?*\n*आप सिंगल हैं या कपल?*",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    
+    # ========== STATUS SELECTION ==========
+    elif data in ["status_single", "status_couple"]:
+        status_map = {
+            "status_single": "Single",
+            "status_couple": "Couple"
+        }
+        user_data[user_id]["status"] = status_map[data]
+        user_data[user_id]["step"] = "age"
         
         await query.edit_message_text(
-            f"✅ Place: *{place_map[data]}*\n\n📝 *Please share your details:*\n\n"
-            f"1️⃣ *Name* (optional / वैकल्पिक)\n"
-            f"2️⃣ *Age* (उम्र)\n"
-            f"3️⃣ *Status* (Single / Couple / Threesome)\n"
-            f"4️⃣ *Preferred Time* (समय)\n\n"
-            f"*Send message like this / इस तरह भेजें:*\n"
-            f"`Name: Rahul, Age: 25, Status: Single, Time: 8 PM`\n\n"
-            f"*Or just type your details in any format*",
+            f"✅ Status: *{status_map[data]}*\n\n🎂 *Please enter your age*\n*कृपया अपनी उम्र बताएं*\n\nExample / उदाहरण: `25`",
             parse_mode='Markdown'
         )
 
 # ============================================
-# DETAILS HANDLER
+# AGE HANDLER
 # ============================================
 
-async def handle_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle customer details"""
+async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle age input"""
     user_id = update.effective_user.id
     message = update.message
     
-    if user_id not in user_data or user_data[user_id].get("step") != "details":
+    if user_id not in user_data or user_data[user_id].get("step") != "age":
         await message.reply_text(
             "📝 Type /book to start a new booking"
         )
         return
     
-    # Store customer details
-    user_data[user_id]["customer_details"] = message.text
+    age = message.text.strip()
+    user_data[user_id]["age"] = age
     user_data[user_id]["step"] = "location"
     
     await message.reply_text(
-        "✅ *Details received!*\n\n"
-        "📍 *Now please share your LIVE LOCATION*\n\n"
-        "Tap attachment (📎) → Location → Send Live Location\n\n"
-        "*अब कृपया अपनी लाइव लोकेशन भेजें*",
+        f"✅ Age: *{age}*\n\n"
+        f"📍 *Now please share your LIVE LOCATION*\n\n"
+        f"Tap attachment (📎) → Location → Send Live Location\n\n"
+        f"*अब कृपया अपनी लाइव लोकेशन भेजें*",
         parse_mode='Markdown'
     )
 
@@ -378,20 +414,21 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Get all booking details
     service = user_data[user_id].get("service", "Unknown")
     duration = user_data[user_id].get("duration", "Unknown")
-    day = user_data[user_id].get("day", "Unknown")
     place = user_data[user_id].get("place", "Unknown")
-    customer_details = user_data[user_id].get("customer_details", "Not provided")
+    status = user_data[user_id].get("status", "Unknown")
+    age = user_data[user_id].get("age", "Unknown")
     
     booking_id = f"BK{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    user = message.from_user
     
     bookings[booking_id] = {
         "user_id": user_id,
-        "user_name": message.from_user.first_name,
+        "user_name": user.first_name,
         "service": service,
         "duration": duration,
-        "day": day,
         "place": place,
-        "customer_details": customer_details,
+        "status": status,
+        "age": age,
         "time": datetime.now().isoformat()
     }
     
@@ -404,9 +441,9 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📝 *Your Details:*
 💼 Service: {service}
 ⏱️ Duration: {duration}
-📅 Day: {day}
-📍 Meeting Place: {place}
-📋 Your Info: {customer_details}
+📍 Place: {place}
+👥 Status: {status}
+🎂 Age: {age}
 
 📞 *Next Steps:*
 Our associate will contact you shortly.
@@ -420,32 +457,38 @@ Our associate will contact you shortly.
     admin_message = f"""
 🔔 *NEW BOOKING ALERT* 🔔
 
-👤 *Customer:* {message.from_user.first_name}
-🆔 *Username:* @{message.from_user.username or 'N/A'}
-🆔 *User ID:* `{user_id}`
-📋 *Booking ID:* `{booking_id}`
-
 ━━━━━━━━━━━━━━━━━━
-📝 *BOOKING DETAILS:*
+👤 *CUSTOMER DETAILS:*
 ━━━━━━━━━━━━━━━━━━
 
-💼 *Service:* {service}
-⏱️ *Duration:* {duration}
-📅 *Day:* {day}
-📍 *Meeting Place:* {place}
-
-📋 *Customer Info:*
-{customer_details}
-
-📍 *Live Location:* {maps_link}
+• Name: {user.first_name} {user.last_name or ''}
+• Username: @{user.username or 'N/A'}
+• User ID: `{user_id}`
+• Age: {age}
+• Status: {status}
 
 ━━━━━━━━━━━━━━━━━━
-⏰ *Booking Time:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+📋 *BOOKING DETAILS:*
+━━━━━━━━━━━━━━━━━━
+
+• Service: {service}
+• Duration: {duration}
+• Place: {place}
+• Booking ID: `{booking_id}`
+
+━━━━━━━━━━━━━━━━━━
+📍 *LOCATION:*
+━━━━━━━━━━━━━━━━━━
+
+• Maps Link: {maps_link}
+
+━━━━━━━━━━━━━━━━━━
+⏰ *Time:* {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
     
     await context.bot.send_message(ADMIN_ID, admin_message, parse_mode='Markdown')
     
-    # Also send location separately for easy access
+    # Send location separately for easy access
     await context.bot.send_location(ADMIN_ID, latitude=lat, longitude=lon)
     
     # Clear user data
@@ -505,15 +548,14 @@ def main():
     
     # Add message handlers
     app.add_handler(MessageHandler(filters.LOCATION, handle_location))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_details))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_age))
     
     print("✅ Bot is running 24/7!")
-    print("✅ All new features added!")
-    print("✅ Dinner Date removed!")
-    print("✅ Casual Meet Up added!")
-    print("✅ Day option added!")
-    print("✅ Place selection added!")
-    print("✅ Customer details added!")
+    print("✅ Day Service - No Full Night option!")
+    print("✅ Day option removed!")
+    print("✅ Single/Couple option added!")
+    print("✅ Age option added!")
+    print("✅ Contact Us sends user details to admin!")
     print("=" * 50)
     
     # Start bot polling

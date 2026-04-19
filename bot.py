@@ -1,6 +1,6 @@
 """
 LUCKNOW GLEEDEN BOT - HINDI + ENGLISH
-24x7 Timing | FULLY FIXED - WITH ADMIN REPLY SYSTEM
+24x7 Timing | FULLY FIXED - WITH ADMIN REPLY SYSTEM & CANCELLATION ALERT
 """
 
 import os
@@ -110,7 +110,6 @@ async def forward_to_admin(update: Update, context: ContextTypes.DEFAULT_TYPE, m
 """
     
     try:
-        # Store user_id in the message so admin can reply
         await context.bot.send_message(
             ADMIN_ID, 
             admin_msg,
@@ -299,14 +298,17 @@ async def admin_reply_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
 
 # ============================================
-# CANCEL BOOKING
+# CANCEL BOOKING - WITH ADMIN ALERT
 # ============================================
 
 async def cancel_booking_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    user = update.effective_user
     
     if user_id in user_active_booking:
         booking_id = user_active_booking[user_id].get("booking_id", "Unknown")
+        booking_data = user_active_booking[user_id]
+        
         keyboard = [
             [InlineKeyboardButton("✅ Yes, Cancel", callback_data=f"confirm_yes_{booking_id}")],
             [InlineKeyboardButton("❌ No, Keep", callback_data="confirm_no")],
@@ -432,9 +434,46 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text("❌ No active booking!", parse_mode='Markdown')
     
+    # ========== CONFIRM YES - WITH CANCELLATION ALERT ==========
     elif data.startswith("confirm_yes_"):
         booking_id = data.replace("confirm_yes_", "")
         if user_id in user_active_booking:
+            booking_data = user_active_booking[user_id]
+            
+            # Send cancellation alert to admin
+            username_display = f"@{booking_data.get('username', 'N/A')}" if booking_data.get('username') else "N/A"
+            
+            cancel_msg = f"""🔔 <b>BOOKING CANCELLED</b> 🔔
+
+━━━━━━━━━━━━━━━━
+<b>CUSTOMER DETAILS:</b>
+━━━━━━━━━━━━━━━━
+👤 Name: {booking_data.get('user_name', 'Unknown')}
+📝 Username: {username_display}
+🆔 User ID: <code>{user_id}</code>
+🎂 Age: {booking_data.get('age', 'N/A')}
+👥 Status: {booking_data.get('status', 'N/A')}
+📞 Contact: {booking_data.get('contact', 'N/A')}
+
+━━━━━━━━━━━━━━━━
+<b>CANCELLED BOOKING DETAILS:</b>
+━━━━━━━━━━━━━━━━
+💼 Service: {booking_data.get('service', 'Unknown')} {booking_data.get('service_type', '')}
+⏱️ Duration: {booking_data.get('duration', 'Unknown')}
+📍 Place: {booking_data.get('place', 'Unknown')}
+🏠 Location: {booking_data.get('location', 'Unknown')}
+📋 Booking ID: <code>{booking_id}</code>
+
+🕐 Cancelled at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"""
+            
+            try:
+                await context.bot.send_message(ADMIN_ID, cancel_msg, parse_mode='HTML')
+                print(f"✅ Cancellation alert sent to admin for booking {booking_id}")
+            except Exception as e:
+                print(f"❌ Failed to send cancellation alert: {e}")
+                # Simple fallback
+                await context.bot.send_message(ADMIN_ID, f"🔔 BOOKING CANCELLED\nUser: {booking_data.get('user_name')}\nBooking ID: {booking_id}")
+            
             del user_active_booking[user_id]
             await query.edit_message_text(f"✅ Booking `{booking_id}` cancelled!", parse_mode='Markdown')
     
@@ -594,11 +633,11 @@ async def skip_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await complete_booking(update, context, user_id, query.message, "Not provided")
 
 # ============================================
-# COMPLETE BOOKING - FIXED (no 'bot' attribute error)
+# COMPLETE BOOKING - FIXED VERSION
 # ============================================
 
 async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id, message, contact_details):
-    """Complete booking and send to admin - using context.bot instead of message.bot"""
+    """Complete booking and send to admin - FIXED with HTML parse mode"""
     
     print(f"\n📝 COMPLETING BOOKING FOR USER: {user_id}")
     
@@ -616,8 +655,6 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         
         print(f"📋 Booking ID: {booking_id}")
         print(f"👤 Customer: {user.first_name}")
-        print(f"💼 Service: {service} {service_type}")
-        print(f"📍 Location: {location}")
         
         # Store booking
         booking_data = {
@@ -629,7 +666,7 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         bookings[booking_id] = booking_data
         user_active_booking[user_id] = booking_data
         
-        # Keyboard after booking
+        # Keyboard after booking for user
         keyboard = [
             [InlineKeyboardButton("📅 New Booking", callback_data="menu_book")],
             [InlineKeyboardButton("❌ Cancel Booking", callback_data="menu_cancel_booking")],
@@ -654,46 +691,37 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
 *Our associate will contact you shortly!*
 """, reply_markup=reply_markup, parse_mode='Markdown')
         
-        # Send to admin using context.bot
-        admin_msg = f"""
-🔔 *NEW BOOKING* 🔔
+        # Build admin message - BEAUTIFUL FORMAT with HTML (more stable)
+        username_display = f"@{user.username}" if user.username else "N/A"
+        
+        admin_msg = f"""🔔 <b>NEW BOOKING</b> 🔔
 
 ━━━━━━━━━━━━━━━━
-*CUSTOMER DETAILS:*
+<b>CUSTOMER DETAILS:</b>
 ━━━━━━━━━━━━━━━━
 👤 Name: {user.first_name}
-📝 Username: @{user.username or 'N/A'}
-🆔 User ID: `{user_id}`
+📝 Username: {username_display}
+🆔 User ID: <code>{user_id}</code>
 🎂 Age: {age}
 👥 Status: {status}
 📞 Contact: {contact}
 
 ━━━━━━━━━━━━━━━━
-*BOOKING DETAILS:*
+<b>BOOKING DETAILS:</b>
 ━━━━━━━━━━━━━━━━
 💼 Service: {service} {service_type}
 ⏱️ Duration: {duration}
 📍 Place: {place}
 🏠 Location: {location}
-📋 Booking ID: `{booking_id}`
+📋 Booking ID: <code>{booking_id}</code>
 
 🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-💡 *To reply to this user:* Use /send {user_id} [message] or reply to this message
-"""
+💡 <i>To reply to this user:</i> Use /send {user_id} [message] or reply to this message"""
         
-        # Send using context.bot
-        try:
-            await context.bot.send_message(ADMIN_ID, admin_msg, parse_mode='Markdown')
-            print(f"✅ Booking details sent to admin {ADMIN_ID}")
-        except Exception as e:
-            print(f"❌ Failed to send to admin: {e}")
-            # Try simple message
-            try:
-                await context.bot.send_message(ADMIN_ID, f"NEW BOOKING! Customer: {user.first_name}, Service: {service}, ID: {booking_id}\nUser ID: {user_id}")
-                print(f"✅ Simple message sent")
-            except Exception as e2:
-                print(f"❌ Both attempts failed: {e2}")
+        # Send to admin - using HTML parse mode (more reliable than Markdown)
+        await context.bot.send_message(ADMIN_ID, admin_msg, parse_mode='HTML')
+        print(f"✅ Beautiful formatted booking sent to admin {ADMIN_ID}")
         
         # Clear user data
         if user_id in user_data:
@@ -701,6 +729,11 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
             
     except Exception as e:
         print(f"❌ ERROR in complete_booking: {e}")
+        # Send simple fallback message in case of error
+        try:
+            await context.bot.send_message(ADMIN_ID, f"🔔 NEW BOOKING!\nUser: {user.first_name}\nService: {service}\nID: {booking_id}\nUser ID: {user_id}")
+        except:
+            pass
         await message.reply_text(f"❌ Error: {str(e)[:100]}")
 
 # ============================================
@@ -726,19 +759,21 @@ def main():
     app.add_handler(CommandHandler("contact", contact_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("cancel", cancel_booking_command))
-    app.add_handler(CommandHandler("send", send_to_user))  # Send message to any user
+    app.add_handler(CommandHandler("send", send_to_user))
     
-    # Admin reply handler - when admin replies to a forwarded message
+    # Admin reply handler
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.User(ADMIN_ID), admin_reply_handler))
     
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, easy_type_handler))
     
     print("✅ Bot started!")
-    print("✅ NEW FEATURES:")
+    print("✅ FEATURES:")
     print("   • /send [ID] [message] - Send message to any user")
     print("   • Reply to any forwarded message - Auto sends reply to user")
     print("   • All user messages are forwarded to admin")
+    print("   • Beautiful HTML formatted booking alerts!")
+    print("   • Cancellation alerts sent to admin! ✅")
     print("=" * 50)
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)

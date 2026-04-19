@@ -434,21 +434,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.edit_message_text("❌ No active booking!", parse_mode='Markdown')
     
-    # ========== CONFIRM YES - WITH CANCELLATION ALERT ==========
+    # ========== CONFIRM YES - WITH CANCELLATION ALERT (FIXED - CUSTOMER NAME) ==========
     elif data.startswith("confirm_yes_"):
         booking_id = data.replace("confirm_yes_", "")
         if user_id in user_active_booking:
             booking_data = user_active_booking[user_id]
             
-            # Send cancellation alert to admin
-            username_display = f"@{booking_data.get('username', 'N/A')}" if booking_data.get('username') else "N/A"
+            # Use stored customer name (which is now correct)
+            customer_name = booking_data.get('user_name', 'Unknown')
+            customer_username = booking_data.get('username', '')
+            username_display = f"@{customer_username}" if customer_username else "N/A"
             
             cancel_msg = f"""🔔 <b>BOOKING CANCELLED</b> 🔔
 
 ━━━━━━━━━━━━━━━━
 <b>CUSTOMER DETAILS:</b>
 ━━━━━━━━━━━━━━━━
-👤 Name: {booking_data.get('user_name', 'Unknown')}
+👤 Name: {customer_name}
 📝 Username: {username_display}
 🆔 User ID: <code>{user_id}</code>
 🎂 Age: {booking_data.get('age', 'N/A')}
@@ -468,11 +470,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             try:
                 await context.bot.send_message(ADMIN_ID, cancel_msg, parse_mode='HTML')
-                print(f"✅ Cancellation alert sent to admin for booking {booking_id}")
+                print(f"✅ Cancellation alert sent for {customer_name}")
             except Exception as e:
-                print(f"❌ Failed to send cancellation alert: {e}")
-                # Simple fallback
-                await context.bot.send_message(ADMIN_ID, f"🔔 BOOKING CANCELLED\nUser: {booking_data.get('user_name')}\nBooking ID: {booking_id}")
+                await context.bot.send_message(ADMIN_ID, f"🔔 BOOKING CANCELLED\nUser: {customer_name}\nBooking ID: {booking_id}")
             
             del user_active_booking[user_id]
             await query.edit_message_text(f"✅ Booking `{booking_id}` cancelled!", parse_mode='Markdown')
@@ -633,15 +633,20 @@ async def skip_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await complete_booking(update, context, user_id, query.message, "Not provided")
 
 # ============================================
-# COMPLETE BOOKING - FIXED VERSION
+# COMPLETE BOOKING - FIXED WITH CORRECT CUSTOMER NAME
 # ============================================
 
 async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id, message, contact_details):
-    """Complete booking and send to admin - FIXED with HTML parse mode"""
+    """Complete booking and send to admin - FIXED with correct user details"""
     
     print(f"\n📝 COMPLETING BOOKING FOR USER: {user_id}")
     
     try:
+        # Get actual user from update (not from message)
+        effective_user = update.effective_user
+        user_first_name = effective_user.first_name
+        user_username = effective_user.username
+        
         service = user_data[user_id].get("service", "Unknown")
         duration = user_data[user_id].get("duration", "Unknown")
         place = user_data[user_id].get("place", "Unknown")
@@ -651,14 +656,13 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         service_type = user_data[user_id].get("type", "")
         contact = contact_details
         booking_id = f"BK{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        user = message.from_user
         
         print(f"📋 Booking ID: {booking_id}")
-        print(f"👤 Customer: {user.first_name}")
+        print(f"👤 Customer: {user_first_name}")
         
-        # Store booking
+        # Store booking with correct user name
         booking_data = {
-            "user_id": user_id, "user_name": user.first_name, "username": user.username,
+            "user_id": user_id, "user_name": user_first_name, "username": user_username,
             "service": service, "service_type": service_type, "duration": duration,
             "place": place, "status": status, "age": age, "location": location,
             "contact": contact, "booking_id": booking_id, "time": datetime.now().isoformat()
@@ -691,15 +695,15 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
 *Our associate will contact you shortly!*
 """, reply_markup=reply_markup, parse_mode='Markdown')
         
-        # Build admin message - BEAUTIFUL FORMAT with HTML (more stable)
-        username_display = f"@{user.username}" if user.username else "N/A"
+        # Build admin message - with correct customer name
+        username_display = f"@{user_username}" if user_username else "N/A"
         
         admin_msg = f"""🔔 <b>NEW BOOKING</b> 🔔
 
 ━━━━━━━━━━━━━━━━
 <b>CUSTOMER DETAILS:</b>
 ━━━━━━━━━━━━━━━━
-👤 Name: {user.first_name}
+👤 Name: {user_first_name}
 📝 Username: {username_display}
 🆔 User ID: <code>{user_id}</code>
 🎂 Age: {age}
@@ -719,19 +723,16 @@ async def complete_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, u
 
 💡 <i>To reply to this user:</i> Use /send {user_id} [message] or reply to this message"""
         
-        # Send to admin - using HTML parse mode (more reliable than Markdown)
         await context.bot.send_message(ADMIN_ID, admin_msg, parse_mode='HTML')
-        print(f"✅ Beautiful formatted booking sent to admin {ADMIN_ID}")
+        print(f"✅ Booking sent to admin with customer name: {user_first_name}")
         
-        # Clear user data
         if user_id in user_data:
             del user_data[user_id]
             
     except Exception as e:
         print(f"❌ ERROR in complete_booking: {e}")
-        # Send simple fallback message in case of error
         try:
-            await context.bot.send_message(ADMIN_ID, f"🔔 NEW BOOKING!\nUser: {user.first_name}\nService: {service}\nID: {booking_id}\nUser ID: {user_id}")
+            await context.bot.send_message(ADMIN_ID, f"🔔 NEW BOOKING!\nUser ID: {user_id}\nError: {e}")
         except:
             pass
         await message.reply_text(f"❌ Error: {str(e)[:100]}")
@@ -773,7 +774,7 @@ def main():
     print("   • Reply to any forwarded message - Auto sends reply to user")
     print("   • All user messages are forwarded to admin")
     print("   • Beautiful HTML formatted booking alerts!")
-    print("   • Cancellation alerts sent to admin! ✅")
+    print("   • Cancellation alerts with correct customer name! ✅")
     print("=" * 50)
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
